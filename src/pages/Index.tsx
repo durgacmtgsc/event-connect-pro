@@ -1,12 +1,15 @@
-import { Calendar, Mail, Phone, MessageCircle, Clock, Users, Send } from "lucide-react";
+import { Mail, Phone, MessageCircle, Clock, Users, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import ContactForm from "@/components/ContactForm";
+import CalendarBooking from "@/components/CalendarBooking";
 
 const Index = () => {
   const phoneNumber = "8897105036";
   const whatsappLink = `https://wa.me/91${phoneNumber}`;
-  const emailAddress = "contact@eventcaller.com";
+  const emailAddress = "info@eventconnect.com";
+  const calLink = "https://cal.com"; // Replace with your actual Cal.com link
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,88 +83,74 @@ const Index = () => {
 
       {/* Booking Section */}
       <section id="booking" className="py-16 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Book a Demo Slot</h2>
           <p className="text-center text-muted-foreground mb-12">
             Schedule a personalized demo to see how EventConnect Pro can work for you
           </p>
           
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center mb-4">
-                  <Calendar className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <CardTitle>Available Slots</CardTitle>
-                <CardDescription>Choose a time that works for you</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {["Mon - Fri: 9:00 AM - 6:00 PM", "Sat: 10:00 AM - 2:00 PM", "Sun: Closed"].map((slot, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
-                    <Clock className="w-4 h-4 text-primary" />
-                    <span className="text-foreground">{slot}</span>
-                  </div>
-                ))}
-                <Link to="/auth" className="block mt-4">
-                  <Button className="w-full gradient-primary text-primary-foreground">
-                    Book Now
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Calendar Booking */}
+            <CalendarBooking calLink={calLink} />
 
-            {/* Contact Card */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Reach Us</CardTitle>
-                <CardDescription>Get in touch through any of these channels</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Email */}
-                <a 
-                  href={`mailto:${emailAddress}`}
-                  className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <Mail className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium text-foreground">{emailAddress}</p>
-                  </div>
-                </a>
+            {/* Contact Form */}
+            <ContactForm />
+          </div>
+        </div>
+      </section>
 
-                {/* Phone */}
-                <a 
-                  href={`tel:+91${phoneNumber}`}
-                  className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                    <Phone className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium text-foreground">+91 {phoneNumber}</p>
-                  </div>
-                </a>
+      {/* Contact Info Section */}
+      <section className="py-16 px-4 bg-secondary/30">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Reach Us</h2>
+          <p className="text-center text-muted-foreground mb-12">
+            Get in touch through any of these channels
+          </p>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Email */}
+            <a 
+              href={`mailto:${emailAddress}`}
+              className="flex flex-col items-center gap-4 p-6 rounded-xl bg-background shadow-lg hover:shadow-xl transition-all group"
+            >
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <Mail className="w-7 h-7 text-primary" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium text-foreground">{emailAddress}</p>
+              </div>
+            </a>
 
-                {/* WhatsApp */}
-                <a 
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-4 p-4 rounded-lg bg-success/10 hover:bg-success/20 transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center group-hover:bg-success/30 transition-colors">
-                    <MessageCircle className="w-5 h-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">WhatsApp</p>
-                    <p className="font-medium text-foreground">+91 {phoneNumber}</p>
-                  </div>
-                </a>
-              </CardContent>
-            </Card>
+            {/* Phone */}
+            <a 
+              href={`tel:+91${phoneNumber}`}
+              className="flex flex-col items-center gap-4 p-6 rounded-xl bg-background shadow-lg hover:shadow-xl transition-all group"
+            >
+              <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                <Phone className="w-7 h-7 text-accent" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Phone</p>
+                <p className="font-medium text-foreground">+91 {phoneNumber}</p>
+              </div>
+            </a>
+
+            {/* WhatsApp */}
+            <a 
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-4 p-6 rounded-xl bg-background shadow-lg hover:shadow-xl transition-all group"
+            >
+              <div className="w-14 h-14 rounded-full bg-success/20 flex items-center justify-center group-hover:bg-success/30 transition-colors">
+                <MessageCircle className="w-7 h-7 text-success" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">WhatsApp</p>
+                <p className="font-medium text-foreground">+91 {phoneNumber}</p>
+              </div>
+            </a>
           </div>
         </div>
       </section>
