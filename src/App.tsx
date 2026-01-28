@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import CreateEvent from "./pages/CreateEvent";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +22,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route
               path="/dashboard"
