@@ -6,7 +6,9 @@ import {
   LogOut,
   Phone,
   Menu,
-  X
+  X,
+  ShoppingCart,
+  Megaphone
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -15,8 +17,10 @@ import { useState } from 'react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: CalendarPlus, label: 'Create Event', path: '/create' },
+  { icon: CalendarPlus, label: 'Create Invitation', path: '/create' },
+  { icon: Megaphone, label: 'Campaigns', path: '/campaigns' },
   { icon: FileBarChart, label: 'Reports', path: '/reports' },
+  { icon: ShoppingCart, label: 'Buy Slots', path: '/dashboard/slots' },
 ];
 
 export function Sidebar() {
@@ -56,7 +60,7 @@ export function Sidebar() {
               <Phone className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-display font-bold text-sidebar-foreground">
-              EventCaller
+              EventConnect
             </span>
           </div>
 
