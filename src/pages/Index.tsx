@@ -113,8 +113,45 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
+      {/* Navigation Bar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg gradient-primary">
+                <Phone className="h-5 w-5 text-white" />
+              </div>
+              <span className="font-display font-bold text-lg">EventConnect</span>
+            </Link>
+            
+            <div className="hidden md:flex items-center gap-6">
+              <Link to="/how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                How It Works
+              </Link>
+              <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Pricing
+              </Link>
+              <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Contact
+              </Link>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Link to="/auth">
+                <Button variant="ghost" size="sm">Login</Button>
+              </Link>
+              <Link to="/auth">
+                <Button size="sm" className="gradient-primary hover:opacity-90">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section with Feature Chips */}
-      <section className="relative gradient-hero text-primary-foreground py-24 px-4">
+      <section className="relative gradient-hero text-primary-foreground pt-32 pb-24 px-4">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
         
         <div className="max-w-6xl mx-auto relative">
