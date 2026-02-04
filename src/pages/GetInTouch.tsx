@@ -50,9 +50,12 @@ export default function GetInTouch() {
     setLoading(true);
 
     try {
+      const phoneFormatted = `+91${cleanPhone}`;
+      
+      // Save to database
       const { error } = await supabase.from('contact_inquiries').insert({
         name: formData.name,
-        phone: `+91${cleanPhone}`,
+        phone: phoneFormatted,
         email: formData.email || null,
         message: formData.message || null,
         status: 'new',
@@ -60,10 +63,25 @@ export default function GetInTouch() {
 
       if (error) throw error;
 
+      // Send admin notification
+      try {
+        await supabase.functions.invoke('notify-admin', {
+          body: {
+            type: 'contact',
+            customerName: formData.name,
+            customerPhone: phoneFormatted,
+            customerEmail: formData.email || undefined,
+            message: formData.message || undefined,
+          },
+        });
+      } catch (notifyError) {
+        console.error('Notification error (non-blocking):', notifyError);
+      }
+
       setSubmitted(true);
       toast({
         title: 'Message Sent!',
-        description: 'We will get back to you soon.',
+        description: "Thanks! We'll contact you shortly.",
       });
     } catch (error) {
       console.error('Error submitting contact form:', error);
@@ -179,7 +197,7 @@ export default function GetInTouch() {
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">Message Sent!</h3>
                     <p className="text-muted-foreground mb-4">
-                      Thank you for reaching out. We'll get back to you soon.
+                      Thanks! We'll contact you shortly.
                     </p>
                     <Button 
                       variant="outline" 
