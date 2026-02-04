@@ -23,86 +23,155 @@ interface NotifyRequest {
   slotCount?: number;
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
-  if (!RESEND_API_KEY) {
-    console.log("RESEND_API_KEY not configured, skipping email");
-    return { skipped: true };
-  }
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-    },
-    body: JSON.stringify({
-      from: "EventReach <noreply@eventreach.in>",
-      to: [to],
-      subject,
-      html,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error("Resend API error:", error);
-    return { error };
-  }
-
-  return response.json();
+interface NotificationResult {
+  channel: string;
+  success: boolean;
+  error?: string;
+  skipped?: boolean;
+  response?: unknown;
 }
 
-async function sendSMS(to: string, body: string) {
-  if (!TWILIO_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    console.log("Twilio credentials not configured, skipping SMS");
-    return { skipped: true };
+function logInfo(message: string, data?: unknown) {
+  console.log(`[INFO] ${new Date().toISOString()} - ${message}`, data ? JSON.stringify(data) : '');
+}
+
+function logError(message: string, error?: unknown) {
+  console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, error ? JSON.stringify(error) : '');
+}
+
+function logWarn(message: string, data?: unknown) {
+  console.warn(`[WARN] ${new Date().toISOString()} - ${message}`, data ? JSON.stringify(data) : '');
+}
+
+async function sendEmail(to: string, subject: string, html: string): Promise<NotificationResult> {
+  const channel = `email:${to}`;
+  
+  if (!RESEND_API_KEY) {
+    logWarn("RESEND_API_KEY not configured, skipping email", { to, subject });
+    return { channel, success: false, skipped: true, error: "RESEND_API_KEY not configured" };
   }
 
-  const twilioAuth = btoa(`${TWILIO_SID}:${TWILIO_AUTH_TOKEN}`);
-  const formData = new URLSearchParams();
-  formData.append("To", to);
-  formData.append("From", TWILIO_PHONE_NUMBER);
-  formData.append("Body", body);
-
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
-    {
+  try {
+    logInfo("Sending email", { to, subject });
+    
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${twilioAuth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
-      body: formData,
-    }
-  );
+      body: JSON.stringify({
+        from: "EventReach <noreply@eventreach.in>",
+        to: [to],
+        subject,
+        html,
+      }),
+    });
 
-  const result = await response.json();
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      logError("Resend API error", { status: response.status, response: responseData });
+      return { channel, success: false, error: responseData?.message || `HTTP ${response.status}` };
+    }
+
+    logInfo("Email sent successfully", { to, subject, id: responseData?.id });
+    return { channel, success: true, response: responseData };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logError("Email send exception", { to, error: errorMessage });
+    return { channel, success: false, error: errorMessage };
+  }
+}
+
+async function sendSMS(to: string, body: string): Promise<NotificationResult> {
+  const channel = `sms:${to}`;
   
-  if (!response.ok) {
-    console.error("Twilio API error:", result);
-    return { error: result.message || "SMS send failed" };
+  if (!TWILIO_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    logWarn("Twilio credentials not configured, skipping SMS", { to });
+    return { channel, success: false, skipped: true, error: "Twilio credentials not configured" };
   }
 
-  return result;
+  try {
+    logInfo("Sending SMS", { to, bodyLength: body.length });
+    
+    const twilioAuth = btoa(`${TWILIO_SID}:${TWILIO_AUTH_TOKEN}`);
+    const formData = new URLSearchParams();
+    formData.append("To", to);
+    formData.append("From", TWILIO_PHONE_NUMBER);
+    formData.append("Body", body);
+
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${twilioAuth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      logError("Twilio API error", { status: response.status, result });
+      return { channel, success: false, error: result?.message || `HTTP ${response.status}` };
+    }
+
+    logInfo("SMS sent successfully", { to, sid: result?.sid, status: result?.status });
+    return { channel, success: true, response: { sid: result?.sid, status: result?.status } };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logError("SMS send exception", { to, error: errorMessage });
+    return { channel, success: false, error: errorMessage };
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const requestId = crypto.randomUUID().slice(0, 8);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  logInfo(`[${requestId}] Incoming notification request`, { method: req.method });
 
   try {
     const data: NotifyRequest = await req.json();
     const { type, customerName, customerPhone, customerEmail, message, slotPackage, slotCount } = data;
 
+    logInfo(`[${requestId}] Processing notification`, { 
+      type, 
+      customerName, 
+      customerPhone: customerPhone?.slice(0, 6) + "****", 
+      hasEmail: !!customerEmail,
+      slotPackage 
+    });
+
     // Validate required fields
     if (!customerName || !customerPhone) {
-      throw new Error("Missing required fields: customerName, customerPhone");
+      logError(`[${requestId}] Missing required fields`, { customerName: !!customerName, customerPhone: !!customerPhone });
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: customerName, customerPhone" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
-    const results: Record<string, unknown> = {};
+    if (!type || !["contact", "slot_purchase"].includes(type)) {
+      logError(`[${requestId}] Invalid notification type`, { type });
+      return new Response(
+        JSON.stringify({ error: "Invalid type. Must be 'contact' or 'slot_purchase'" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const results: NotificationResult[] = [];
 
     if (type === "contact") {
+      logInfo(`[${requestId}] Processing contact inquiry notification`);
+      
       // Admin notification for contact inquiry
       const adminSmsText = `New contact inquiry:\nName: ${customerName}\nPhone: ${customerPhone}\nMessage: ${message || "No message"}`;
       
@@ -122,16 +191,23 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
       `;
 
-      results.adminEmail = await sendEmail(ADMIN_EMAIL, `New Contact Inquiry from ${customerName}`, adminEmailHtml);
-      results.adminSms = await sendSMS(ADMIN_PHONE, adminSmsText);
+      const [emailResult, smsResult] = await Promise.all([
+        sendEmail(ADMIN_EMAIL, `New Contact Inquiry from ${customerName}`, adminEmailHtml),
+        sendSMS(ADMIN_PHONE, adminSmsText)
+      ]);
+      
+      results.push({ ...emailResult, channel: "admin_email" });
+      results.push({ ...smsResult, channel: "admin_sms" });
 
     } else if (type === "slot_purchase") {
+      logInfo(`[${requestId}] Processing slot purchase notification`, { slotPackage, slotCount });
+      
       // Admin notification for slot purchase
-      const adminSmsText = `New slot purchase:\nName: ${customerName}\nPhone: ${customerPhone}\nPackage: ${slotPackage || slotCount + " guests"}`;
+      const adminSmsText = `New slot booking request:\nName: ${customerName}\nPhone: ${customerPhone}\nPackage: ${slotPackage || slotCount + " guests"}`;
       
       const adminEmailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #6366f1;">New Slot Purchase - EventReach</h2>
+          <h2 style="color: #6366f1;">New Slot Booking Request - EventReach</h2>
           <hr style="border: 1px solid #eee;" />
           <p><strong>Customer Name:</strong> ${customerName}</p>
           <p><strong>Phone:</strong> <a href="tel:${customerPhone}">${customerPhone}</a></p>
@@ -145,23 +221,32 @@ const handler = async (req: Request): Promise<Response> => {
         </div>
       `;
 
-      results.adminEmail = await sendEmail(ADMIN_EMAIL, `New Slot Purchase: ${slotPackage}`, adminEmailHtml);
-      results.adminSms = await sendSMS(ADMIN_PHONE, adminSmsText);
+      // Send admin notifications in parallel
+      const [adminEmailResult, adminSmsResult] = await Promise.all([
+        sendEmail(ADMIN_EMAIL, `New Slot Booking Request: ${slotPackage}`, adminEmailHtml),
+        sendSMS(ADMIN_PHONE, adminSmsText)
+      ]);
+      
+      results.push({ ...adminEmailResult, channel: "admin_email" });
+      results.push({ ...adminSmsResult, channel: "admin_sms" });
 
       // Customer confirmation
-      const customerSmsText = `Thank you for booking EventReach – ${slotPackage || slotCount + " guest"} package. Our team will contact you shortly.`;
+      const customerSmsText = `Thank you for your booking request with EventReach – ${slotPackage || slotCount + " guest"} package. Our team will contact you shortly to confirm your booking.`;
+      
+      // Send customer notifications
+      const customerNotifications: Promise<NotificationResult>[] = [];
       
       if (customerPhone) {
-        results.customerSms = await sendSMS(customerPhone, customerSmsText);
+        customerNotifications.push(sendSMS(customerPhone, customerSmsText));
       }
 
       if (customerEmail) {
         const customerEmailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #6366f1;">Booking Confirmed - EventReach</h2>
+            <h2 style="color: #6366f1;">Booking Request Received - EventReach</h2>
             <p>Dear ${customerName},</p>
-            <p>Thank you for booking EventReach – <strong>${slotPackage}</strong> package.</p>
-            <p>Our team will contact you shortly to complete your booking and help you get started with your event invitations.</p>
+            <p>Thank you for your booking request with EventReach – <strong>${slotPackage}</strong> package.</p>
+            <p>Our team will contact you shortly to confirm your booking and help you get started with your event invitations.</p>
             <div style="background: #e0e7ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
               <p style="margin: 0; font-size: 18px; font-weight: bold; color: #4f46e5;">Your Package: ${slotPackage}</p>
             </div>
@@ -175,21 +260,58 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="color: #888; font-size: 12px;">EventReach - Making Every Invitation Special</p>
           </div>
         `;
-        results.customerEmail = await sendEmail(customerEmail, "Booking Confirmed - EventReach", customerEmailHtml);
+        customerNotifications.push(sendEmail(customerEmail, "Booking Request Received - EventReach", customerEmailHtml));
       }
+
+      const customerResults = await Promise.all(customerNotifications);
+      customerResults.forEach((result, index) => {
+        results.push({ ...result, channel: index === 0 ? "customer_sms" : "customer_email" });
+      });
     }
 
-    console.log("Notifications sent:", results);
+    // Log summary
+    const successCount = results.filter(r => r.success).length;
+    const failedCount = results.filter(r => !r.success && !r.skipped).length;
+    const skippedCount = results.filter(r => r.skipped).length;
+
+    logInfo(`[${requestId}] Notification summary`, { 
+      type,
+      total: results.length, 
+      success: successCount, 
+      failed: failedCount, 
+      skipped: skippedCount,
+      results: results.map(r => ({ channel: r.channel, success: r.success, skipped: r.skipped, error: r.error }))
+    });
+
+    // Determine overall success - at least admin email or SMS should succeed
+    const adminNotificationSent = results.some(r => 
+      (r.channel === "admin_email" || r.channel === "admin_sms") && r.success
+    );
+
+    if (!adminNotificationSent && failedCount > 0) {
+      logError(`[${requestId}] No admin notifications were sent successfully`);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, results }),
+      JSON.stringify({ 
+        success: true, 
+        requestId,
+        summary: {
+          total: results.length,
+          success: successCount,
+          failed: failedCount,
+          skipped: skippedCount,
+          adminNotified: adminNotificationSent
+        },
+        results 
+      }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in notify-admin function:", error);
+    logError(`[${requestId}] Fatal error in notify-admin function`, { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, requestId }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

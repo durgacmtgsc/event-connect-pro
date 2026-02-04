@@ -75,7 +75,8 @@ export default function GetInTouch() {
           },
         });
       } catch (notifyError) {
-        console.error('Notification error (non-blocking):', notifyError);
+        // Log but don't fail - inquiry is already saved to database
+        console.error('[GetInTouch] Notification error (non-blocking):', notifyError);
       }
 
       setSubmitted(true);
@@ -84,10 +85,10 @@ export default function GetInTouch() {
         description: "Thanks! We'll contact you shortly.",
       });
     } catch (error) {
-      console.error('Error submitting contact form:', error);
+      console.error('[GetInTouch] Error submitting contact form:', error);
       toast({
         title: 'Error',
-        description: 'Something went wrong. Please try again.',
+        description: 'Failed to submit your message. Please try again or contact us directly.',
         variant: 'destructive',
       });
     } finally {
