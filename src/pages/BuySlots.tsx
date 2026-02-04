@@ -105,12 +105,15 @@ export default function BuySlots() {
     setLoading(true);
 
     try {
+      const phoneFormatted = `+91${cleanPhone}`;
+      const slotPackage = `${selectedPlan.guests} Guests`;
+      
       // Save to database
       const { error } = await supabase.from('slot_purchases').insert({
         customer_name: formData.name,
-        customer_phone: `+91${cleanPhone}`,
+        customer_phone: phoneFormatted,
         customer_email: formData.email || null,
-        slot_plan: `${selectedPlan.guests} Guests`,
+        slot_plan: slotPackage,
         slot_count: selectedPlan.guests,
         price: selectedPlan.price,
         status: 'pending',
@@ -118,10 +121,26 @@ export default function BuySlots() {
 
       if (error) throw error;
 
+      // Send admin and customer notifications
+      try {
+        await supabase.functions.invoke('notify-admin', {
+          body: {
+            type: 'slot_purchase',
+            customerName: formData.name,
+            customerPhone: phoneFormatted,
+            customerEmail: formData.email || undefined,
+            slotPackage: slotPackage,
+            slotCount: selectedPlan.guests,
+          },
+        });
+      } catch (notifyError) {
+        console.error('Notification error (non-blocking):', notifyError);
+      }
+
       setSubmitted(true);
       toast({
-        title: 'Booking Received!',
-        description: 'Our team will contact you shortly.',
+        title: 'Booking Successful!',
+        description: "We'll contact you shortly.",
       });
     } catch (error) {
       console.error('Error submitting booking:', error);
@@ -158,13 +177,13 @@ export default function BuySlots() {
               <CheckCircle2 className="w-10 h-10 text-success" />
             </div>
             <h1 className="text-3xl font-display font-bold text-foreground mb-4">
-              Thank You for Booking!
+              Booking Successful!
             </h1>
             <p className="text-muted-foreground mb-2">
               Your booking for <strong>{selectedPlan?.guests} Guests Package</strong> has been received.
             </p>
             <p className="text-muted-foreground mb-8">
-              Our team will contact you at <strong>{formData.phone}</strong> within 2 hours to confirm your booking.
+              We'll contact you shortly. You can also reach us directly:
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/">
