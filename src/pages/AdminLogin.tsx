@@ -13,13 +13,56 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, user, isAdmin, adminLoading } = useAdminAuth();
+  const { signIn, signOut, user, isAdmin, adminLoading, loading: authLoading } = useAdminAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Show loading while auth state is being determined
+  if (authLoading || adminLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // If already logged in as admin, redirect to dashboard
-  if (user && isAdmin && !adminLoading) {
+  if (user && isAdmin) {
     return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  // If logged in but not admin, show access denied and sign them out
+  if (user && !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md p-8">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+            <Shield className="h-8 w-8 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+          <p className="text-muted-foreground mb-6">
+            This account does not have admin privileges. Only authorized administrators can access this area.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                await signOut();
+                toast({ title: 'Signed out', description: 'You have been signed out.' });
+              }}
+            >
+              Sign Out
+            </Button>
+            <a href="/" className="text-primary hover:underline text-sm">
+              Return to Homepage
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,23 +72,29 @@ export default function AdminLogin() {
     try {
       const { error } = await signIn(email, password);
       if (error) {
+        console.error('[AdminLogin] Sign in failed:', error.message);
         toast({
           title: 'Login Failed',
           description: error.message,
           variant: 'destructive',
         });
-      } else {
-        // After successful login, the useAdminAuth hook will check admin role
-        // and redirect if needed
-        toast({
-          title: 'Welcome back!',
-          description: 'Redirecting to admin dashboard...',
-        });
-        // Small delay to allow role check
-        setTimeout(() => {
-          navigate('/admin/dashboard');
-        }, 500);
+        return;
       }
+      
+      // After successful login, the useAdminAuth hook will check admin role
+      toast({
+        title: 'Verifying access...',
+        description: 'Checking admin privileges.',
+      });
+      
+      // The component will re-render and show either dashboard redirect or access denied
+    } catch (error) {
+      console.error('[AdminLogin] Unexpected error:', error);
+      toast({
+        title: 'Login Error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

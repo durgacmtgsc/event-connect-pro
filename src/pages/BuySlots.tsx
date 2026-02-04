@@ -134,16 +134,17 @@ export default function BuySlots() {
           },
         });
       } catch (notifyError) {
-        console.error('Notification error (non-blocking):', notifyError);
+        // Log but don't fail - booking is already saved to database
+        console.error('[BuySlots] Notification error (non-blocking):', notifyError);
       }
 
       setSubmitted(true);
       toast({
-        title: 'Booking Successful!',
-        description: "We'll contact you shortly.",
+        title: 'Booking Request Submitted!',
+        description: "We'll contact you shortly to confirm your booking.",
       });
     } catch (error) {
-      console.error('Error submitting booking:', error);
+      console.error('[BuySlots] Error submitting booking request:', error);
       toast({
         title: 'Error',
         description: 'Something went wrong. Please try again.',
@@ -177,13 +178,13 @@ export default function BuySlots() {
               <CheckCircle2 className="w-10 h-10 text-success" />
             </div>
             <h1 className="text-3xl font-display font-bold text-foreground mb-4">
-              Booking Successful!
+              Booking Request Submitted!
             </h1>
             <p className="text-muted-foreground mb-2">
-              Your booking for <strong>{selectedPlan?.guests} Guests Package</strong> has been received.
+              Your booking request for <strong>{selectedPlan?.guests} Guests Package</strong> has been received.
             </p>
             <p className="text-muted-foreground mb-8">
-              We'll contact you shortly. You can also reach us directly:
+              Our team will contact you shortly to confirm and complete your booking. You can also reach us directly:
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/">
@@ -231,10 +232,10 @@ export default function BuySlots() {
       <section className="pt-28 pb-12 px-4 gradient-hero text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-display font-bold mb-4">
-            Buy Invitation Slots
+            Request Invitation Slots
           </h1>
           <p className="text-lg text-white/70 max-w-2xl mx-auto">
-            Select a package that fits your event. No login required – just select, fill your details, and our team will get in touch.
+            Select a package that fits your event. This is a booking request – no payment is required now. Our team will contact you to confirm and complete your booking.
           </p>
         </div>
       </section>
@@ -299,10 +300,10 @@ export default function BuySlots() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
-                Complete Your Booking
+                Submit Booking Request
               </CardTitle>
               <CardDescription>
-                Fill in your details and we'll contact you to confirm
+                Fill in your details – no payment required. We'll contact you to confirm and complete the booking.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -359,14 +360,17 @@ export default function BuySlots() {
                   disabled={loading || !selectedPlan}
                 >
                   {loading ? (
-                    'Processing...'
+                    'Submitting Request...'
                   ) : (
                     <>
-                      Book Now
+                      Submit Booking Request
                       <ArrowRight className="ml-2 w-4 h-4" />
                     </>
                   )}
                 </Button>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  This is a booking request. No payment is collected now.
+                </p>
               </form>
             </CardContent>
           </Card>
