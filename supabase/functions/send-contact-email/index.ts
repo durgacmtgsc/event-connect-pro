@@ -1,5 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
+// HTML escape function to prevent injection attacks
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const RESEND_API_URL = "https://api.resend.com/emails";
 
@@ -72,23 +82,29 @@ const handler = async (req: Request): Promise<Response> => {
     const toEmail = Deno.env.get("CONTACT_EMAIL") || "info@eventconnect.com";
     const fromDomain = Deno.env.get("RESEND_FROM_DOMAIN") || "eventconnect.com";
 
+    // HTML-escape user inputs for email templates
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safePhone = phone ? escapeHtml(phone) : undefined;
+    const safeMessage = escapeHtml(message);
+
     // Send notification email to admin
     const emailResponse = await sendEmail(
       [toEmail],
       `EventConnect Pro <noreply@${fromDomain}>`,
-      `New Contact Inquiry from ${name}`,
+      `New Contact Inquiry from ${safeName}`,
       `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">New Contact Form Submission</h2>
           <hr style="border: 1px solid #eee;" />
           
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-          ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
+          <p><strong>Name:</strong> ${safeName}</p>
+          <p><strong>Email:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a></p>
+          ${safePhone ? `<p><strong>Phone:</strong> ${safePhone}</p>` : ""}
           
           <h3 style="color: #555; margin-top: 20px;">Message:</h3>
           <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <p style="white-space: pre-wrap;">${message}</p>
+            <p style="white-space: pre-wrap;">${safeMessage}</p>
           </div>
           
           <hr style="border: 1px solid #eee; margin-top: 30px;" />
@@ -107,13 +123,13 @@ const handler = async (req: Request): Promise<Response> => {
       "We received your message!",
       `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Thank you for reaching out, ${name}!</h2>
+          <h2 style="color: #333;">Thank you for reaching out, ${safeName}!</h2>
           
           <p>We've received your message and will get back to you within 24 hours.</p>
           
           <h3 style="color: #555; margin-top: 20px;">Your message:</h3>
           <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <p style="white-space: pre-wrap;">${message}</p>
+            <p style="white-space: pre-wrap;">${safeMessage}</p>
           </div>
           
           <p style="margin-top: 20px;">

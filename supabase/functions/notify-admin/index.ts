@@ -1,5 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
+// HTML escape function to prevent injection attacks
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const TWILIO_SID = Deno.env.get("TWILIO_SID");
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
@@ -167,24 +177,61 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Validate input lengths to prevent abuse
+    if (customerName.length > 100) {
+      logError(`[${requestId}] Customer name too long`, { length: customerName.length });
+      return new Response(
+        JSON.stringify({ error: "Customer name must be less than 100 characters" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    if (customerPhone.length > 20) {
+      logError(`[${requestId}] Customer phone too long`, { length: customerPhone.length });
+      return new Response(
+        JSON.stringify({ error: "Phone number must be less than 20 characters" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    if (message && message.length > 1000) {
+      logError(`[${requestId}] Message too long`, { length: message.length });
+      return new Response(
+        JSON.stringify({ error: "Message must be less than 1000 characters" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    if (customerEmail && customerEmail.length > 255) {
+      logError(`[${requestId}] Customer email too long`, { length: customerEmail.length });
+      return new Response(
+        JSON.stringify({ error: "Email must be less than 255 characters" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // HTML-escape user inputs for email templates
+    const safeCustomerName = escapeHtml(customerName);
+    const safeCustomerPhone = escapeHtml(customerPhone);
+    const safeCustomerEmail = customerEmail ? escapeHtml(customerEmail) : undefined;
+    const safeMessage = message ? escapeHtml(message) : undefined;
+    const safeSlotPackage = slotPackage ? escapeHtml(slotPackage) : undefined;
+
     const results: NotificationResult[] = [];
 
     if (type === "contact") {
       logInfo(`[${requestId}] Processing contact inquiry notification`);
       
-      // Admin notification for contact inquiry
-      const adminSmsText = `New contact inquiry:\nName: ${customerName}\nPhone: ${customerPhone}\nMessage: ${message || "No message"}`;
+      // Admin notification for contact inquiry (SMS uses plain text, no escaping needed)
+      const adminSmsText = `New contact inquiry:\nName: ${customerName}\nPhone: ${customerPhone}\nMessage: ${message || "No message"}`.slice(0, 1600);
       
       const adminEmailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #6366f1;">New Contact Inquiry - EventReach</h2>
           <hr style="border: 1px solid #eee;" />
-          <p><strong>Name:</strong> ${customerName}</p>
-          <p><strong>Phone:</strong> <a href="tel:${customerPhone}">${customerPhone}</a></p>
-          ${customerEmail ? `<p><strong>Email:</strong> <a href="mailto:${customerEmail}">${customerEmail}</a></p>` : ""}
+          <p><strong>Name:</strong> ${safeCustomerName}</p>
+          <p><strong>Phone:</strong> <a href="tel:${safeCustomerPhone}">${safeCustomerPhone}</a></p>
+          ${safeCustomerEmail ? `<p><strong>Email:</strong> <a href="mailto:${safeCustomerEmail}">${safeCustomerEmail}</a></p>` : ""}
           <h3 style="color: #555; margin-top: 20px;">Message:</h3>
           <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <p style="white-space: pre-wrap;">${message || "No message provided"}</p>
+            <p style="white-space: pre-wrap;">${safeMessage || "No message provided"}</p>
           </div>
           <hr style="border: 1px solid #eee; margin-top: 30px;" />
           <p style="color: #888; font-size: 12px;">EventReach - Event Invitation Platform</p>
@@ -192,7 +239,7 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       const [emailResult, smsResult] = await Promise.all([
-        sendEmail(ADMIN_EMAIL, `New Contact Inquiry from ${customerName}`, adminEmailHtml),
+        sendEmail(ADMIN_EMAIL, `New Contact Inquiry from ${safeCustomerName}`, adminEmailHtml),
         sendSMS(ADMIN_PHONE, adminSmsText)
       ]);
       
@@ -202,18 +249,18 @@ const handler = async (req: Request): Promise<Response> => {
     } else if (type === "slot_purchase") {
       logInfo(`[${requestId}] Processing slot purchase notification`, { slotPackage, slotCount });
       
-      // Admin notification for slot purchase
-      const adminSmsText = `New slot booking request:\nName: ${customerName}\nPhone: ${customerPhone}\nPackage: ${slotPackage || slotCount + " guests"}`;
+      // Admin notification for slot purchase (SMS uses plain text)
+      const adminSmsText = `New slot booking request:\nName: ${customerName}\nPhone: ${customerPhone}\nPackage: ${slotPackage || slotCount + " guests"}`.slice(0, 1600);
       
       const adminEmailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #6366f1;">New Slot Booking Request - EventReach</h2>
           <hr style="border: 1px solid #eee;" />
-          <p><strong>Customer Name:</strong> ${customerName}</p>
-          <p><strong>Phone:</strong> <a href="tel:${customerPhone}">${customerPhone}</a></p>
-          ${customerEmail ? `<p><strong>Email:</strong> <a href="mailto:${customerEmail}">${customerEmail}</a></p>` : ""}
+          <p><strong>Customer Name:</strong> ${safeCustomerName}</p>
+          <p><strong>Phone:</strong> <a href="tel:${safeCustomerPhone}">${safeCustomerPhone}</a></p>
+          ${safeCustomerEmail ? `<p><strong>Email:</strong> <a href="mailto:${safeCustomerEmail}">${safeCustomerEmail}</a></p>` : ""}
           <div style="background: #e0e7ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0;"><strong>Package:</strong> ${slotPackage || slotCount + " guests"}</p>
+            <p style="margin: 0;"><strong>Package:</strong> ${safeSlotPackage || slotCount + " guests"}</p>
           </div>
           <p style="color: #666;">Please contact the customer to complete their booking.</p>
           <hr style="border: 1px solid #eee; margin-top: 30px;" />
@@ -223,7 +270,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Send admin notifications in parallel
       const [adminEmailResult, adminSmsResult] = await Promise.all([
-        sendEmail(ADMIN_EMAIL, `New Slot Booking Request: ${slotPackage}`, adminEmailHtml),
+        sendEmail(ADMIN_EMAIL, `New Slot Booking Request: ${safeSlotPackage || slotCount + " guests"}`, adminEmailHtml),
         sendSMS(ADMIN_PHONE, adminSmsText)
       ]);
       
@@ -231,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
       results.push({ ...adminSmsResult, channel: "admin_sms" });
 
       // Customer confirmation
-      const customerSmsText = `Thank you for your booking request with EventReach – ${slotPackage || slotCount + " guest"} package. Our team will contact you shortly to confirm your booking.`;
+      const customerSmsText = `Thank you for your booking request with EventReach – ${slotPackage || slotCount + " guest"} package. Our team will contact you shortly to confirm your booking.`.slice(0, 1600);
       
       // Send customer notifications
       const customerNotifications: Promise<NotificationResult>[] = [];
@@ -244,11 +291,11 @@ const handler = async (req: Request): Promise<Response> => {
         const customerEmailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #6366f1;">Booking Request Received - EventReach</h2>
-            <p>Dear ${customerName},</p>
-            <p>Thank you for your booking request with EventReach – <strong>${slotPackage}</strong> package.</p>
+            <p>Dear ${safeCustomerName},</p>
+            <p>Thank you for your booking request with EventReach – <strong>${safeSlotPackage || slotCount + " guests"}</strong> package.</p>
             <p>Our team will contact you shortly to confirm your booking and help you get started with your event invitations.</p>
             <div style="background: #e0e7ff; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-              <p style="margin: 0; font-size: 18px; font-weight: bold; color: #4f46e5;">Your Package: ${slotPackage}</p>
+              <p style="margin: 0; font-size: 18px; font-weight: bold; color: #4f46e5;">Your Package: ${safeSlotPackage || slotCount + " guests"}</p>
             </div>
             <p>Need immediate assistance? Contact us:</p>
             <ul>
