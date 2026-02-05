@@ -151,7 +151,7 @@ export default function GetInTouch() {
               </Card>
             </a>
 
-            <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="block">
+            <a href={whatsappLink} className="block">
               <Card className="h-full hover:shadow-lg transition-all hover:border-success/50 cursor-pointer">
                 <CardContent className="p-6 text-center">
                   <div className="w-14 h-14 rounded-xl bg-success flex items-center justify-center mx-auto mb-4">
