@@ -193,6 +193,42 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          author_name: string
+          content: string
+          created_at: string
+          event_type: string
+          id: string
+          is_featured: boolean
+          is_published: boolean
+          rating: number
+          updated_at: string
+        }
+        Insert: {
+          author_name: string
+          content: string
+          created_at?: string
+          event_type: string
+          id?: string
+          is_featured?: boolean
+          is_published?: boolean
+          rating?: number
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string
+          content?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          is_featured?: boolean
+          is_published?: boolean
+          rating?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

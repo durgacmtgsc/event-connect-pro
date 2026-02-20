@@ -9,27 +9,59 @@ import {
   CalendarCheck,
   ArrowRight,
   Shield,
-  Headphones,
   BarChart3,
-  UserCheck,
   PhoneCall,
   Star,
   Sparkles,
   CalendarDays,
   ListChecks,
-  SendHorizonal,
   ClipboardCheck,
   Menu,
-  X
+  X,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Testimonial {
+  id: string;
+  author_name: string;
+  event_type: string;
+  content: string;
+  rating: number;
+  is_featured: boolean;
+}
 
 const Index = () => {
   const phoneNumber = "8897105036";
   const whatsappLink = `https://wa.me/91${phoneNumber}`;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [activeEventsCount, setActiveEventsCount] = useState(0);
+
+  useEffect(() => {
+    // Fetch published testimonials for homepage
+    supabase
+      .from('testimonials')
+      .select('id, author_name, event_type, content, rating, is_featured')
+      .eq('is_published', true)
+      .order('is_featured', { ascending: false })
+      .limit(3)
+      .then(({ data }) => {
+        if (data) setTestimonials(data);
+      });
+
+    // Fetch active events count for counter
+    supabase
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['pending', 'scheduled', 'sending'])
+      .then(({ count }) => {
+        setActiveEventsCount(count || 0);
+      });
+  }, []);
 
   const featureChips = [
     { icon: PhoneCall, label: "Voice Call Invitations" },
@@ -387,6 +419,82 @@ const Index = () => {
                 <p className="text-muted-foreground leading-relaxed">{benefit.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      {testimonials.length > 0 && (
+        <section className="py-20 px-4 bg-card border-t border-border">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+              <span className="text-primary font-medium text-sm uppercase tracking-wider">Reviews</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mt-2 mb-4">
+                What Our Customers Say
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Trusted by hundreds of families across India for their most special moments.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {testimonials.map((t) => (
+                <div key={t.id} className="p-6 rounded-2xl bg-background border border-border hover:shadow-lg transition-all hover:border-primary/30 group">
+                  <div className="flex items-center gap-1 mb-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={`w-4 h-4 ${i < t.rating ? 'text-warning fill-warning' : 'text-muted-foreground'}`} />
+                    ))}
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed mb-6 italic">"{t.content}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-sm">{t.author_name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-sm">{t.author_name}</p>
+                      <p className="text-xs text-muted-foreground">{t.event_type}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Active Events Tracker */}
+      <section className="py-12 px-4 bg-primary/5 border-t border-border">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-center">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-3xl font-bold text-foreground">{activeEventsCount > 0 ? `${activeEventsCount}+` : '10+'}</p>
+                <p className="text-sm text-muted-foreground">Active Events Right Now</p>
+              </div>
+            </div>
+            <div className="hidden md:block w-px h-12 bg-border" />
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-success/10 flex items-center justify-center">
+                <Users className="w-7 h-7 text-success" />
+              </div>
+              <div className="text-left">
+                <p className="text-3xl font-bold text-foreground">500+</p>
+                <p className="text-sm text-muted-foreground">Families Served</p>
+              </div>
+            </div>
+            <div className="hidden md:block w-px h-12 bg-border" />
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-warning/10 flex items-center justify-center">
+                <Star className="w-7 h-7 text-warning" />
+              </div>
+              <div className="text-left">
+                <p className="text-3xl font-bold text-foreground">4.9/5</p>
+                <p className="text-sm text-muted-foreground">Average Rating</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

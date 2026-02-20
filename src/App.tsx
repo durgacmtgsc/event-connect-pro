@@ -18,6 +18,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminCreateInvitation from "./pages/AdminCreateInvitation";
 import AdminCampaigns from "./pages/AdminCampaigns";
 import AdminReports from "./pages/AdminReports";
+import AdminBookings from "./pages/AdminBookings";
+import AdminTestimonials from "./pages/AdminTestimonials";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +48,14 @@ const App = () => (
               }
             />
             <Route
+              path="/admin/bookings"
+              element={
+                <AdminRoute>
+                  <AdminBookings />
+                </AdminRoute>
+              }
+            />
+            <Route
               path="/admin/create"
               element={
                 <AdminRoute>
@@ -65,6 +76,22 @@ const App = () => (
               element={
                 <AdminRoute>
                   <AdminReports />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/testimonials"
+              element={
+                <AdminRoute>
+                  <AdminTestimonials />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsers />
                 </AdminRoute>
               }
             />
