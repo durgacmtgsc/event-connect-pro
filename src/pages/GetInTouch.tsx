@@ -113,8 +113,17 @@ export default function GetInTouch() {
               <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </Link>
+              <a href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                How It Works
+              </a>
+              <a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Pricing
+              </a>
               <Link to="/buy-slots" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Buy Slots
+              </Link>
+              <Link to="/admin/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Login
               </Link>
             </div>
           </div>

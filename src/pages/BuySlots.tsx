@@ -196,6 +196,9 @@ export default function BuySlots() {
                   Chat on WhatsApp
                 </Button>
               </a>
+              <Link to="/contact">
+                <Button variant="outline">Contact Us</Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -220,8 +223,17 @@ export default function BuySlots() {
               <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </Link>
+              <a href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                How It Works
+              </a>
+              <a href="/#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Pricing
+              </a>
               <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Contact
+              </Link>
+              <Link to="/admin/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Login
               </Link>
             </div>
           </div>
