@@ -8,7 +8,10 @@ import {
   Menu,
   X,
   Megaphone,
-  Shield
+  Shield,
+  ShoppingBag,
+  Star,
+  Users
 } from 'lucide-react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { cn } from '@/lib/utils';
@@ -16,10 +19,13 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
-  { icon: CalendarPlus, label: 'Create Invitation', path: '/admin/create' },
-  { icon: Megaphone, label: 'Campaigns', path: '/admin/campaigns' },
-  { icon: FileBarChart, label: 'Reports', path: '/admin/reports' },
+  { icon: LayoutDashboard, label: 'Dashboard',        path: '/admin/dashboard' },
+  { icon: ShoppingBag,     label: 'Bookings',         path: '/admin/bookings' },
+  { icon: CalendarPlus,    label: 'Create Invitation',path: '/admin/create' },
+  { icon: Megaphone,       label: 'Campaigns',        path: '/admin/campaigns' },
+  { icon: FileBarChart,    label: 'Reports',          path: '/admin/reports' },
+  { icon: Star,            label: 'Testimonials',     path: '/admin/testimonials' },
+  { icon: Users,           label: 'Admin Users',      path: '/admin/users' },
 ];
 
 export function AdminSidebar() {
@@ -54,7 +60,7 @@ export function AdminSidebar() {
       )}>
         <div className="flex flex-col h-full p-6">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-10">
+          <div className="flex items-center gap-3 mb-8">
             <div className="p-2 rounded-xl gradient-primary">
               <Phone className="h-6 w-6 text-white" />
             </div>
@@ -70,7 +76,7 @@ export function AdminSidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-2">
+          <nav className="flex-1 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -85,8 +91,8 @@ export function AdminSidebar() {
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium text-sm">{item.label}</span>
                 </Link>
               );
             })}
@@ -95,7 +101,7 @@ export function AdminSidebar() {
           {/* User section */}
           <div className="border-t border-sidebar-border pt-4">
             <div className="flex items-center gap-3 px-4 py-2 mb-2">
-              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-sm font-semibold">
                   {user?.email?.charAt(0).toUpperCase()}
                 </span>
@@ -112,7 +118,7 @@ export function AdminSidebar() {
               className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
               <LogOut className="h-5 w-5" />
-              <span className="font-medium">Sign Out</span>
+              <span className="font-medium text-sm">Sign Out</span>
             </button>
           </div>
         </div>
